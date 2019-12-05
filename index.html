@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>VueJS eval</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+            }
+            h1 {
+                text-align: center;
+                font-size: 50px;
+                padding: 50px;
+            }
+            #app {
+                text-align: center;
+            }
+            .main {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .contenant {
+                width: 130px;
+                text-align: center;
+            }
+            .container {
+                display: flex;
+                flex-direction: row;
+            }
+            input {
+                width: 110px;
+                margin: 0 10px;
+            }
+            ul {
+                list-style : none;
+            }
+            li {
+                padding: 10px 0;
+                border-top: 1px solid lightgray;
+            }
+            li:hover {
+                background-color: lightgray;
+            }
+            span {
+                width: 250px;
+                padding : 10px;
+                text-align: center;
+                border-radius: 5px;
+                background-color: lightgray;
+                font-weight: bold;
+                margin: 2px;
+            }
+            .ajout {
+                width: 740px;
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+            }
+            .totaux {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                width: 300px;
+            }
+            .result {
+                display: flex;
+                flex-direction: row;
+                margin: 25px 0;
+            }
+            .debug {
+                width: 1020px;
+                background-color: rgba(251, 121, 121, 1);
+                border-radius: 5px;
+                text-align: center;
+                padding: 10px;
+            }
+            .btn-ajout {
+                width: 150px;
+                padding : 10px;
+                text-align: center;
+                border-radius: 5px;
+                background-color: lightgray;
+            }
+            .date {
+                width: 1040px;
+                text-align: right;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app">
+            <h1>{{ titre }}</h1>
+            <facture></facture>
+        </div>
+    </body>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script type="text/javascript">
+        let facture = {
+            data: function(){
+                return {
+                    articles: [],
+                    data: 'Facture du 1 Décembre 2019'
+                }
+            },
+            template: `
+                <div class="main">
+                    <div class="date">
+                        {{ data }}
+                    </div>
+                    <div>
+                        <ul>
+                            <li>
+                                <div class="container">
+                                    <div class="contenant">id</div>
+                                    <div class="contenant">désignation</div>
+                                    <div class="contenant">Quantité</div>
+                                    <div class="contenant">Prix Unitaire HT</div>
+                                    <div class="contenant">TVA % </div>
+                                    <div class="contenant">Prix HT</div>
+                                    <div class="contenant">Prix TTC</div>
+                                    <div class="contenant"></div>
+                                </div>
+                            </li>
+                            <li v-for="(article,index) in articles" :key="index">
+                                <div class="container">
+                                    <div class="contenant">{{ article['id'] }}</div>
+                                    <div class="contenant"><input type="text" v-model="article['designation']"></div>
+                                    <div class="contenant"><input type="number" v-model="article['qte']" @change="calcul(index)"></div>
+                                    <div class="contenant"><input type="text" v-model="article['pu_ht']" @change="calcul(index)"></div>
+                                    <div class="contenant"><input type="number" v-model="article['tva']" @change="calcul(index)"></div>
+                                    <div class="contenant">{{ article['p_ht'] }} €</div>
+                                    <div class="contenant">{{ article['p_ttc'] }} €</div>
+                                    <div class="contenant"><button @click="del(index)">effacer</button></div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="result">
+                        <div class="ajout">
+                            <button type="button" class="btn-ajout" @click="add">+ Ajouter une ligne</button>
+                        </div>
+                        <div class="totaux">
+                            <span>Total HT : {{ totalHT }} €</span>
+                            <span>Total TTC : {{ totalTTC }} €</span>
+                        </div>
+                    </div>
+                    <div class="debug">
+                        {{ articles }}
+                    </div>
+                </div>`,
+            methods: {
+                add() {
+                    this.articles.push({'id':(this.articles.length + 1), 'designation':'', 'qte': 0, 'pu_ht': 0, 'tva': 0, 'p_ht': 0, 'p_ttc': 0});
+                },
+                del(index) {
+                    if(this.articles.length != 1) {
+                        this.articles.splice(index, 1);
+                    }
+                },
+                calcul(i) {
+                    let tva;
+                    if (this.articles[i]['tva'] <= 9) {
+                        tva = parseFloat('1.0' + this.articles[i]['tva']);
+                    } else {
+                        tva = parseFloat('1.' + this.articles[i]['tva']);
+                    }
+                    this.articles[i]['p_ht'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht']).toFixed(2);
+                    this.articles[i]['p_ttc'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht'] * tva).toFixed(2);
+                }
+            },
+            watch: {
+                articles: {
+                    handler: function() {
+                        localStorage.setItem('liste', JSON.stringify(this.articles));
+                    },
+                    deep : true
+                }
+            },
+            computed : {
+                totalHT() {
+                    let t_ht = 0;
+                    for(let i = 0; i < this.articles.length; i++) {
+                        t_ht = parseFloat(t_ht + this.articles[i]['p_ht']);
+                    }
+                    return t_ht.toFixed(2);
+                },
+                totalTTC() {
+                    let t_ttc = 0;
+                    for(let i = 0; i < this.articles.length; i++) {
+                        console.log('sans PF : '+ t_ttc + this.articles[i]['p_ttc']);
+                        console.log('avec : ' + parseFloat(t_ttc + this.articles[i]['p_ttc']));
+                        t_ttc = parseFloat(t_ttc + this.articles[i]['p_ttc']);
+                        console.log(t_ttc);
+                    }
+                    return t_ttc.toFixed(2);
+                },
+            },
+            mounted(){
+                let articles = JSON.parse(localStorage.getItem('liste'));
+                if (articles){
+                    this.articles = articles;
+                } else {
+                    this.articles = [{'id':1, 'designation':'', 'qte': 0, 'pu_ht': 0, 'tva': 0, 'p_ht': 0, 'p_ttc': 0}]
+                }
+            }
+        };
+
+        let app = new Vue({
+            el: '#app',
+            data: {
+                titre: 'Evaluation VueJS'
+            },
+            components: {
+                'facture' : facture
+            },
+        });
+    </script>
+</html>
