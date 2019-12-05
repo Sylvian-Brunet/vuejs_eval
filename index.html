@@ -99,11 +99,15 @@
     </body>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script type="text/javascript">
+
+        const apiUri = "http://localhost:3000/";
+
         let facture = {
             data: function(){
                 return {
                     articles: [],
-                    data: 'Facture du 1 Décembre 2019'
+                    data: 'Facture du 1 Décembre 2019',
+                    selected: ''
                 }
             },
             template: `
@@ -128,20 +132,25 @@
                             <li v-for="(article,index) in articles" :key="index">
                                 <div class="container">
                                     <div class="contenant">{{ article['id'] }}</div>
-                                    <div class="contenant"><input type="text" v-model="article['designation']"></div>
-                                    <div class="contenant"><input type="number" v-model="article['qte']" @change="calcul(index)"></div>
-                                    <div class="contenant"><input type="text" v-model="article['pu_ht']" @change="calcul(index)"></div>
-                                    <div class="contenant"><input type="number" v-model="article['tva']" @change="calcul(index)"></div>
+                                    <div class="contenant"><input type="text" v-model="article['designation']" @input="update(index)"></div>
+                                    <div class="contenant"><input type="number" v-model="article['qte']" min="0" @input="update(index)"></div>
+                                    <div class="contenant"><input type="text" v-model="article['pu_ht']" @input="update(index)"></div>
+                                    <div class="contenant">
+                                        <select  v-model="article['tva']" @change="update(index)">
+                                            <option value="0">0%</option>
+                                            <option value="20">20%</option>
+                                        </select>
+                                    </div>
                                     <div class="contenant">{{ article['p_ht'] }} €</div>
                                     <div class="contenant">{{ article['p_ttc'] }} €</div>
-                                    <div class="contenant"><button @click="del(index)">effacer</button></div>
+                                    <div class="contenant"><button @click="del(article['id'], index)">effacer</button></div>
                                 </div>
                             </li>
                         </ul>
                     </div>
                     <div class="result">
                         <div class="ajout">
-                            <button type="button" class="btn-ajout" @click="add">+ Ajouter une ligne</button>
+                            <button type="button" class="btn-ajout" @click="create">+ Ajouter une ligne</button>
                         </div>
                         <div class="totaux">
                             <span>Total HT : {{ totalHT }} €</span>
@@ -153,15 +162,18 @@
                     </div>
                 </div>`,
             methods: {
-                add() {
-                    this.articles.push({'id':(this.articles.length + 1), 'designation':'', 'qte': 0, 'pu_ht': 0, 'tva': 0, 'p_ht': 0, 'p_ttc': 0});
+                add(id) {
+                    this.articles.push({'id':id, 'designation':'', 'qte': 0, 'pu_ht': 0, 'tva': 0, 'p_ht': 0, 'p_ttc': 0});
                 },
-                del(index) {
+                del(id, index) {
+                    fetch(apiUri + 'factures/' + id, {
+                        method: "DELETE"
+                    });
                     if(this.articles.length != 1) {
                         this.articles.splice(index, 1);
                     }
                 },
-                calcul(i) {
+                /*calcul(i) {
                     let tva;
                     if (this.articles[i]['tva'] <= 9) {
                         tva = parseFloat('1.0' + this.articles[i]['tva']);
@@ -170,6 +182,38 @@
                     }
                     this.articles[i]['p_ht'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht']).toFixed(2);
                     this.articles[i]['p_ttc'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht'] * tva).toFixed(2);
+                },*/
+                create() {
+                    fetch(apiUri + 'factures', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    }).then((response) => response.json()).then((data) => {
+                        let id = data['id'];
+                        /*this.articles[this.articles.length - 1]['id'] = id;*/
+                        this.add(id);
+                    });
+                },
+                update(i) {
+                    let tva;
+                    if (this.articles[i]['tva'] <= 9) {
+                        tva = parseFloat('1.0' + this.articles[i]['tva']);
+                    } else {
+                        tva = parseFloat('1.' + this.articles[i]['tva']);
+                    }
+                    this.articles[i]['p_ht'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht']).toFixed(2);
+                    this.articles[i]['p_ttc'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht'] * tva).toFixed(2);
+
+                    fetch(apiUri + 'factures/' + this.articles[i]['id'], {
+                        method: 'PATCH',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body : JSON.stringify(this.articles[i])
+                    });
                 }
             },
             watch: {
@@ -184,28 +228,34 @@
                 totalHT() {
                     let t_ht = 0;
                     for(let i = 0; i < this.articles.length; i++) {
-                        t_ht = parseFloat(t_ht + this.articles[i]['p_ht']);
+                        t_ht = t_ht + parseFloat(this.articles[i]['p_ht']);
                     }
                     return t_ht.toFixed(2);
                 },
                 totalTTC() {
                     let t_ttc = 0;
                     for(let i = 0; i < this.articles.length; i++) {
-                        console.log('sans PF : '+ t_ttc + this.articles[i]['p_ttc']);
-                        console.log('avec : ' + parseFloat(t_ttc + this.articles[i]['p_ttc']));
-                        t_ttc = parseFloat(t_ttc + this.articles[i]['p_ttc']);
-                        console.log(t_ttc);
+                        t_ttc = t_ttc + parseFloat(this.articles[i]['p_ttc']);
                     }
                     return t_ttc.toFixed(2);
                 },
             },
             mounted(){
-                let articles = JSON.parse(localStorage.getItem('liste'));
+
+                fetch(apiUri + 'factures')
+                    .then((response) => response.json())
+                    .then((data) => {
+                            this.articles = data;
+                            /*this.articles.push({'id':(this.articles[this.articles.length - 1]['id'] + 1), 'designation':'', 'qte': 0, 'pu_ht': 0, 'tva': 0, 'p_ht': 0, 'p_ttc': 0});*/
+                        }
+                    );
+
+                /*let articles = JSON.parse(localStorage.getItem('liste'));
                 if (articles){
                     this.articles = articles;
                 } else {
                     this.articles = [{'id':1, 'designation':'', 'qte': 0, 'pu_ht': 0, 'tva': 0, 'p_ht': 0, 'p_ttc': 0}]
-                }
+                }*/
             }
         };
 
