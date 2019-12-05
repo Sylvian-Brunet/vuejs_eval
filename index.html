@@ -106,14 +106,18 @@
             data: function(){
                 return {
                     articles: [],
-                    data: 'Facture du 1 Décembre 2019',
-                    selected: ''
+                    data: 'Facture du ',
+                    synchro: 'Attention pas synchronisé !',
+                    SynchroN: 0,
                 }
             },
             template: `
                 <div class="main">
+                    <div>
+                        {{ synchro }}
+                    </div>
                     <div class="date">
-                        {{ data }}
+                        {{ date }}
                     </div>
                     <div>
                         <ul>
@@ -173,31 +177,25 @@
                         this.articles.splice(index, 1);
                     }
                 },
-                /*calcul(i) {
-                    let tva;
-                    if (this.articles[i]['tva'] <= 9) {
-                        tva = parseFloat('1.0' + this.articles[i]['tva']);
-                    } else {
-                        tva = parseFloat('1.' + this.articles[i]['tva']);
-                    }
-                    this.articles[i]['p_ht'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht']).toFixed(2);
-                    this.articles[i]['p_ttc'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht'] * tva).toFixed(2);
-                },*/
                 create() {
-                    fetch(apiUri + 'factures', {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        }
-                    }).then((response) => response.json()).then((data) => {
-                        let id = data['id'];
-                        /*this.articles[this.articles.length - 1]['id'] = id;*/
-                        this.add(id);
-                    });
+                    if (this.synchroN == 1) {
+                        fetch(apiUri + 'factures', {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            }
+                        }).then((response) => response.json()).then((data) => {
+                            let id = data['id'];
+                            /*this.articles[this.articles.length - 1]['id'] = id;*/
+                            this.add(id);
+                        });
+                    } else {
+                        this.add(this.articles.length + 1);
+                    }
                 },
                 update(i) {
-                    let tva;
+                                        let tva;
                     if (this.articles[i]['tva'] <= 9) {
                         tva = parseFloat('1.0' + this.articles[i]['tva']);
                     } else {
@@ -206,14 +204,21 @@
                     this.articles[i]['p_ht'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht']).toFixed(2);
                     this.articles[i]['p_ttc'] = parseFloat(this.articles[i]['qte'] * this.articles[i]['pu_ht'] * tva).toFixed(2);
 
-                    fetch(apiUri + 'factures/' + this.articles[i]['id'], {
-                        method: 'PATCH',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        body : JSON.stringify(this.articles[i])
-                    });
+                    if (this.synchroN == 1) {
+                        fetch(apiUri + 'factures/' + this.articles[i]['id'], {
+                            method: 'PATCH',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body : JSON.stringify(this.articles[i])
+                        });
+                    }
+                },
+                getDate() {
+                    let date = new Date();
+                    let options = {year: "numeric", month: "long", day: "numeric"};
+                    this.date = 'Facture du ' + date.toLocaleDateString('fr-FR', options);
                 }
             },
             watch: {
@@ -241,21 +246,24 @@
                 },
             },
             mounted(){
-
-                fetch(apiUri + 'factures')
-                    .then((response) => response.json())
-                    .then((data) => {
-                            this.articles = data;
-                            /*this.articles.push({'id':(this.articles[this.articles.length - 1]['id'] + 1), 'designation':'', 'qte': 0, 'pu_ht': 0, 'tva': 0, 'p_ht': 0, 'p_ttc': 0});*/
-                        }
-                    );
-
-                /*let articles = JSON.parse(localStorage.getItem('liste'));
+                this.getDate();
+                let articles = JSON.parse(localStorage.getItem('liste'));
                 if (articles){
                     this.articles = articles;
                 } else {
                     this.articles = [{'id':1, 'designation':'', 'qte': 0, 'pu_ht': 0, 'tva': 0, 'p_ht': 0, 'p_ttc': 0}]
-                }*/
+                }
+                setTimeout(() => {
+                    fetch(apiUri + 'factures')
+                        .then((response) => response.json())
+                        .then((data) => {
+                                this.articles = data;
+                                this.synchro = 'Synchronisé !'
+                                this.synchroN = 1;
+                                /*this.articles.push({'id':(this.articles[this.articles.length - 1]['id'] + 1), 'designation':'', 'qte': 0, 'pu_ht': 0, 'tva': 0, 'p_ht': 0, 'p_ttc': 0});*/
+                            }
+                        );
+                }, 5000);
             }
         };
 

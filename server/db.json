@@ -2,30 +2,12 @@
   "factures": [
     {
       "id": 1,
-      "designation": "un avion",
-      "qte": "4",
-      "pu_ht": "210",
+      "designation": "bateau",
+      "qte": "1",
+      "pu_ht": "50",
       "tva": "20",
-      "p_ht": "840.00",
-      "p_ttc": "1008.00"
-    },
-    {
-      "id": 2,
-      "designation": "un bateau",
-      "qte": "4",
-      "pu_ht": 20,
-      "tva": "20",
-      "p_ht": "80.00",
-      "p_ttc": "96.00"
-    },
-    {
-      "id": 3,
-      "designation": "un camionsss",
-      "qte": "2",
-      "pu_ht": "15.56",
-      "tva": "0",
-      "p_ht": "31.12",
-      "p_ttc": "31.12"
+      "p_ht": "50.00",
+      "p_ttc": "60.00"
     }
   ]
 }
